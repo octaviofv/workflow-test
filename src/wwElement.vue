@@ -17,15 +17,18 @@
         @paneClick="onPaneClick"
         @dragover="onDragOver"
         @drop="onDrop"
+        @nodeDragStop="onNodeDragStop"
+        @nodesDelete="onNodesDelete"
+        @edgesDelete="onEdgesDelete"
       >
         <template #node-custom="nodeProps">
-          <CustomNode v-bind="nodeProps" />
+          <CustomNode v-bind="nodeProps" @update:data="onNodeDataUpdate" />
         </template>
         <template #node-circle="nodeProps">
           <CircleNode v-bind="nodeProps" />
         </template>
         <template #node-http-request="nodeProps">
-          <HttpRequestNode v-bind="nodeProps" />
+          <HttpRequestNode v-bind="nodeProps" @update:data="onNodeDataUpdate" />
         </template>
 
         <Background :pattern-color="backgroundColor" :gap="backgroundGap" />
@@ -82,7 +85,7 @@ export default {
     wwEditorState: { type: Object, required: true },
     /* wwEditor:end */
   },
-  emits: ['trigger-event'],
+  emits: ['trigger-event', 'update:content'],
   setup(props, { emit }) {
     const initialized = ref(false);
     const elements = ref([]);
@@ -114,6 +117,27 @@ export default {
     const showMinimap = computed(() => props.content?.showMinimap ?? true);
     const backgroundColor = computed(() => props.content?.backgroundColor || '#f5f5f5');
 
+    // Update flowData in content whenever elements change
+    const updateFlowData = () => {
+      const nodes = elements.value.filter(el => !el.source); // Elements without source are nodes
+      const edges = elements.value.filter(el => el.source); // Elements with source are edges
+
+      const updatedContent = {
+        ...props.content,
+        flowData: {
+          nodes,
+          edges
+        }
+      };
+
+      emit('update:content', updatedContent);
+    };
+
+    // Watch for changes in elements and update flowData
+    watch(elements, () => {
+      updateFlowData();
+    }, { deep: true });
+
     onMounted(() => {
       try {
         if (props.content?.flowData) {
@@ -131,20 +155,6 @@ export default {
         console.error('Error initializing flow data:', error);
         elements.value = [];
         initialized.value = true;
-      }
-    });
-
-    watch(() => props.content?.flowData, (newData) => {
-      if (newData && initialized.value) {
-        try {
-          const parsedData = typeof newData === 'string' ? JSON.parse(newData) : newData;
-          elements.value = [
-            ...(parsedData.nodes || []),
-            ...(parsedData.edges || [])
-          ];
-        } catch (error) {
-          console.error('Invalid flow data:', error);
-        }
       }
     });
 
@@ -193,6 +203,33 @@ export default {
       emit('trigger-event', { name: 'selectionCleared' });
     };
 
+    const onNodeDragStop = (event, node) => {
+      const updatedNode = findNode(node.id);
+      if (updatedNode) {
+        emit('trigger-event', { name: 'nodeMoved', event: { node: updatedNode } });
+      }
+    };
+
+    const onNodesDelete = (nodes) => {
+      nodes.forEach(node => {
+        emit('trigger-event', { name: 'nodeDeleted', event: { nodeId: node.id } });
+      });
+    };
+
+    const onEdgesDelete = (edges) => {
+      edges.forEach(edge => {
+        emit('trigger-event', { name: 'edgeDeleted', event: { edgeId: edge.id } });
+      });
+    };
+
+    const onNodeDataUpdate = (nodeId, newData) => {
+      const node = findNode(nodeId);
+      if (node) {
+        node.data = { ...node.data, ...newData };
+        emit('trigger-event', { name: 'nodeUpdated', event: { node } });
+      }
+    };
+
     const deleteSelected = () => {
       if (selectedNode.value) {
         removeNodes([selectedNode.value.id]);
@@ -227,6 +264,10 @@ export default {
       updateNodeData,
       onDragOver,
       onDrop,
+      onNodeDragStop,
+      onNodesDelete,
+      onEdgesDelete,
+      onNodeDataUpdate,
     };
   },
 };
