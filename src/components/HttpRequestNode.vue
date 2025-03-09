@@ -49,26 +49,6 @@
           </div>
         </div>
 
-        <!-- Request Body -->
-        <div v-if="['POST', 'PUT', 'PATCH'].includes(data.method)" class="section-container">
-          <div class="section-header">
-            <span>Request Body</span>
-          </div>
-          <div class="body-content">
-            <select v-model="data.bodyType" @change="updateData" class="body-type-select">
-              <option value="json">JSON</option>
-              <option value="form">Form Data</option>
-              <option value="raw">Raw</option>
-            </select>
-            <textarea
-              v-model="data.body"
-              :placeholder="getBodyPlaceholder()"
-              class="body-input"
-              @change="updateData"
-            ></textarea>
-          </div>
-        </div>
-
         <!-- Authentication Section -->
         <div class="section-container">
           <div class="section-header">
@@ -141,63 +121,6 @@
             </div>
           </div>
         </div>
-
-        <!-- Test Button and Response Preview -->
-        <div class="test-section">
-          <button 
-            @click="testRequest" 
-            class="test-button"
-            :class="{ loading: isLoading }"
-            :disabled="isLoading || !data.url"
-          >
-            <svg v-if="isLoading" class="spinner" viewBox="0 0 24 24">
-              <circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="4" />
-            </svg>
-            <span>{{ isLoading ? 'Testing...' : 'Test Request' }}</span>
-          </button>
-
-          <div v-if="testResponse" class="response-preview">
-            <div class="response-header" :class="getStatusClass(testResponse.status)">
-              <div class="status-badge">
-                {{ testResponse.status }} {{ testResponse.statusText }}
-              </div>
-              <div class="timing-info">
-                {{ formatTiming(testResponse.timing) }}
-              </div>
-            </div>
-
-            <div class="response-tabs">
-              <button 
-                v-for="tab in ['Response', 'Headers']" 
-                :key="tab"
-                @click="activeTab = tab"
-                :class="{ active: activeTab === tab }"
-                class="tab-button"
-              >
-                {{ tab }}
-              </button>
-            </div>
-
-            <div v-if="activeTab === 'Response'" class="response-body">
-              <pre v-if="testResponse.error" class="error-message">{{ testResponse.error }}</pre>
-              <vue-json-pretty
-                v-else
-                :data="testResponse.data"
-                :deep="2"
-                :show-double-quotes="true"
-                :show-length="true"
-                class="response-json"
-              />
-            </div>
-
-            <div v-if="activeTab === 'Headers'" class="response-headers">
-              <div v-for="(value, key) in testResponse.headers" :key="key" class="header-item">
-                <span class="header-key">{{ key }}:</span>
-                <span class="header-value">{{ value }}</span>
-              </div>
-            </div>
-          </div>
-        </div>
       </div>
     </div>
 
@@ -221,16 +144,11 @@
 import { ref } from 'vue';
 import { Handle } from '@vue-flow/core';
 import { debounce } from 'lodash';
-import VueJsonPretty from 'vue-json-pretty';
-import prettyBytes from 'pretty-bytes';
-import prettyMs from 'pretty-ms';
-import axios from 'axios';
 
 export default {
   name: 'HttpRequestNode',
   components: {
-    Handle,
-    VueJsonPretty
+    Handle
   },
   props: {
     id: {
@@ -249,9 +167,6 @@ export default {
   setup(props, { emit }) {
     const isExpanded = ref(false);
     const showAdvanced = ref(false);
-    const isLoading = ref(false);
-    const testResponse = ref(null);
-    const activeTab = ref('Response');
     const httpMethods = ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'];
 
     // Initialize default data if not present
@@ -262,8 +177,6 @@ export default {
     if (!props.data.retry) props.data.retry = { attempts: 3, delay: 1000 };
     if (!props.data.validateSSL) props.data.validateSSL = true;
     if (!props.data.cacheResponse) props.data.cacheResponse = false;
-    if (!props.data.bodyType) props.data.bodyType = 'json';
-    if (!props.data.body) props.data.body = '';
 
     const updateData = debounce(() => {
       emit('update:data', props.data);
@@ -279,142 +192,13 @@ export default {
       updateData();
     };
 
-    const getBodyPlaceholder = () => {
-      switch (props.data.bodyType) {
-        case 'json':
-          return '{\n  "key": "value"\n}';
-        case 'form':
-          return 'key1=value1&key2=value2';
-        case 'raw':
-          return 'Enter raw request body';
-        default:
-          return '';
-      }
-    };
-
-    const getStatusClass = (status) => {
-      if (!status) return '';
-      if (status < 300) return 'success';
-      if (status < 400) return 'redirect';
-      if (status < 500) return 'client-error';
-      return 'server-error';
-    };
-
-    const formatTiming = (timing) => {
-      if (!timing) return '';
-      return `${prettyMs(timing.total)} · ${prettyBytes(timing.size)}`;
-    };
-
-    const buildRequestConfig = () => {
-      const config = {
-        url: props.data.url,
-        method: props.data.method,
-        timeout: props.data.timeout,
-        validateStatus: null,
-        headers: {},
-      };
-
-      // Add headers
-      props.data.headers.forEach(header => {
-        if (header.key && header.value) {
-          config.headers[header.key] = header.value;
-        }
-      });
-
-      // Add authentication
-      switch (props.data.auth.type) {
-        case 'basic':
-          config.auth = {
-            username: props.data.auth.username,
-            password: props.data.auth.password
-          };
-          break;
-        case 'bearer':
-          config.headers['Authorization'] = `Bearer ${props.data.auth.token}`;
-          break;
-        case 'apiKey':
-          if (props.data.auth.in === 'header') {
-            config.headers['X-API-Key'] = props.data.auth.key;
-          } else {
-            const url = new URL(props.data.url);
-            url.searchParams.append('apiKey', props.data.auth.key);
-            config.url = url.toString();
-          }
-          break;
-      }
-
-      // Add request body
-      if (['POST', 'PUT', 'PATCH'].includes(props.data.method) && props.data.body) {
-        if (props.data.bodyType === 'json') {
-          try {
-            config.data = JSON.parse(props.data.body);
-            config.headers['Content-Type'] = 'application/json';
-          } catch (e) {
-            throw new Error('Invalid JSON in request body');
-          }
-        } else if (props.data.bodyType === 'form') {
-          config.data = props.data.body;
-          config.headers['Content-Type'] = 'application/x-www-form-urlencoded';
-        } else {
-          config.data = props.data.body;
-        }
-      }
-
-      return config;
-    };
-
-    const testRequest = async () => {
-      if (!props.data.url) return;
-
-      isLoading.value = true;
-      testResponse.value = null;
-
-      try {
-        const config = buildRequestConfig();
-        const startTime = performance.now();
-        
-        const response = await axios(config);
-        
-        const endTime = performance.now();
-        const timing = {
-          total: endTime - startTime,
-          size: new Blob([JSON.stringify(response.data)]).size
-        };
-
-        testResponse.value = {
-          status: response.status,
-          statusText: response.statusText,
-          headers: response.headers,
-          data: response.data,
-          timing
-        };
-      } catch (error) {
-        testResponse.value = {
-          status: error.response?.status || 0,
-          statusText: error.response?.statusText || 'Error',
-          headers: error.response?.headers || {},
-          error: error.message,
-          timing: { total: 0, size: 0 }
-        };
-      } finally {
-        isLoading.value = false;
-      }
-    };
-
     return {
       isExpanded,
       showAdvanced,
-      isLoading,
-      testResponse,
-      activeTab,
       httpMethods,
       updateData,
       addHeader,
-      removeHeader,
-      getBodyPlaceholder,
-      getStatusClass,
-      formatTiming,
-      testRequest
+      removeHeader
     };
   }
 };
@@ -569,35 +353,6 @@ export default {
   }
 }
 
-.body-content {
-  padding: 12px;
-
-  .body-type-select {
-    width: 100%;
-    margin-bottom: 8px;
-    padding: 6px 10px;
-    border: 1px solid #E5E7EB;
-    border-radius: 4px;
-    font-size: 13px;
-  }
-
-  .body-input {
-    width: 100%;
-    min-height: 120px;
-    padding: 8px;
-    border: 1px solid #E5E7EB;
-    border-radius: 4px;
-    font-family: monospace;
-    font-size: 13px;
-    resize: vertical;
-
-    &:focus {
-      outline: none;
-      border-color: #3B82F6;
-    }
-  }
-}
-
 .remove-button {
   background: none;
   border: none;
@@ -727,139 +482,6 @@ export default {
       border-color: #3B82F6;
     }
   }
-}
-
-.test-section {
-  margin-top: 16px;
-}
-
-.test-button {
-  width: 100%;
-  padding: 10px;
-  background: #3B82F6;
-  color: white;
-  border: none;
-  border-radius: 6px;
-  font-weight: 500;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  transition: all 0.2s ease;
-
-  &:hover:not(:disabled) {
-    background: #2563EB;
-  }
-
-  &:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
-
-  .spinner {
-    width: 16px;
-    height: 16px;
-    animation: spin 1s linear infinite;
-  }
-}
-
-@keyframes spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
-}
-
-.response-preview {
-  margin-top: 16px;
-  border: 1px solid #E5E7EB;
-  border-radius: 8px;
-  overflow: hidden;
-}
-
-.response-header {
-  padding: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  background: #F9FAFB;
-  border-bottom: 1px solid #E5E7EB;
-
-  &.success { background: #ECFDF5; }
-  &.redirect { background: #FEF3C7; }
-  &.client-error { background: #FEE2E2; }
-  &.server-error { background: #FEE2E2; }
-}
-
-.status-badge {
-  font-weight: 500;
-  font-size: 14px;
-}
-
-.timing-info {
-  font-size: 12px;
-  color: #6B7280;
-}
-
-.response-tabs {
-  display: flex;
-  background: #F9FAFB;
-  border-bottom: 1px solid #E5E7EB;
-}
-
-.tab-button {
-  padding: 8px 16px;
-  background: none;
-  border: none;
-  font-size: 13px;
-  color: #6B7280;
-  cursor: pointer;
-  border-bottom: 2px solid transparent;
-
-  &.active {
-    color: #3B82F6;
-    border-bottom-color: #3B82F6;
-  }
-
-  &:hover:not(.active) {
-    color: #111827;
-  }
-}
-
-.response-body {
-  padding: 12px;
-  max-height: 300px;
-  overflow: auto;
-}
-
-.error-message {
-  color: #DC2626;
-  margin: 0;
-  font-family: monospace;
-  font-size: 13px;
-}
-
-.response-headers {
-  padding: 12px;
-  max-height: 300px;
-  overflow: auto;
-}
-
-.header-item {
-  display: flex;
-  margin-bottom: 4px;
-  font-size: 13px;
-  font-family: monospace;
-}
-
-.header-key {
-  color: #374151;
-  font-weight: 500;
-  margin-right: 8px;
-}
-
-.header-value {
-  color: #6B7280;
-  word-break: break-all;
 }
 
 .node-handles {
