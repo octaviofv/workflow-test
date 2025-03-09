@@ -24,6 +24,9 @@
         <template #node-circle="nodeProps">
           <CircleNode v-bind="nodeProps" />
         </template>
+        <template #node-http-request="nodeProps">
+          <HttpRequestNode v-bind="nodeProps" />
+        </template>
 
         <Background :pattern-color="backgroundColor" :gap="backgroundGap" />
         <Controls />
@@ -50,6 +53,7 @@ import '@vue-flow/controls/dist/style.css';
 import '@vue-flow/minimap/dist/style.css';
 import CustomNode from './components/CustomNode.vue';
 import CircleNode from './components/CircleNode.vue';
+import HttpRequestNode from './components/HttpRequestNode.vue';
 import Sidebar from './components/Sidebar.vue';
 
 export default {
@@ -62,6 +66,7 @@ export default {
     Panel,
     CustomNode,
     CircleNode,
+    HttpRequestNode,
     Sidebar,
   },
   props: {
