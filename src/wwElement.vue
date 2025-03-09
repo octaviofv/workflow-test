@@ -122,12 +122,14 @@ export default {
       const nodes = elements.value.filter(el => !el.source); // Elements without source are nodes
       const edges = elements.value.filter(el => el.source); // Elements with source are edges
 
+      const flowData = {
+        nodes,
+        edges
+      };
+
       const updatedContent = {
         ...props.content,
-        flowData: {
-          nodes,
-          edges
-        }
+        flowData: JSON.stringify(flowData, null, 2) // Format the JSON with indentation
       };
 
       emit('update:content', updatedContent);
