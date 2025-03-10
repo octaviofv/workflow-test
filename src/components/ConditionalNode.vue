@@ -25,7 +25,7 @@
         <textarea
           v-model="editedCondition"
           class="condition-input"
-          placeholder="Enter condition (e.g., value > 10 && status === 'active')"
+          placeholder="Enter your condition"
           @keyup.esc="cancelEdit"
           ref="conditionInput"
           rows="2"
@@ -74,10 +74,6 @@
         :style="{ top: '65%' }"
       />
     </div>
-
-    <div v-if="validationError" class="error-message">
-      {{ validationError }}
-    </div>
   </div>
 </template>
 
@@ -109,26 +105,10 @@ export default {
     const isEditing = ref(false);
     const editedCondition = ref('');
     const conditionInput = ref(null);
-    const validationError = ref('');
-
-    const validateCondition = (condition) => {
-      if (!condition.trim()) {
-        return 'Condition cannot be empty';
-      }
-
-      try {
-        // Basic syntax validation
-        new Function('return ' + condition);
-        return '';
-      } catch (error) {
-        return 'Invalid condition syntax';
-      }
-    };
 
     const startEditing = () => {
       editedCondition.value = props.data.condition || '';
       isEditing.value = true;
-      validationError.value = '';
       
       setTimeout(() => {
         conditionInput.value?.focus();
@@ -136,25 +116,17 @@ export default {
     };
 
     const saveChanges = () => {
-      const error = validateCondition(editedCondition.value);
-      if (error) {
-        validationError.value = error;
-        return;
-      }
-
       const updatedData = {
         ...props.data,
-        condition: editedCondition.value.trim()
+        condition: editedCondition.value
       };
       
       emit('update:data', props.id, updatedData);
       isEditing.value = false;
-      validationError.value = '';
     };
 
     const cancelEdit = () => {
       isEditing.value = false;
-      validationError.value = '';
     };
 
     const handleClickOutside = (event) => {
@@ -175,7 +147,6 @@ export default {
       isEditing,
       editedCondition,
       conditionInput,
-      validationError,
       startEditing,
       saveChanges,
       cancelEdit
@@ -427,19 +398,5 @@ export default {
     }
   }
 }
-
-.error-message {
-  position: absolute;
-  bottom: -36px;
-  left: 50%;
-  transform: translateX(-50%);
-  background: #FEE2E2;
-  color: #DC2626;
-  padding: 6px 12px;
-  border-radius: 6px;
-  font-size: 12px;
-  white-space: nowrap;
-  z-index: 10;
-  border: 1px solid #FCA5A5;
-}
 </style>
+```
