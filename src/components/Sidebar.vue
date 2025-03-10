@@ -5,12 +5,25 @@
       <div
         class="draggable-node"
         draggable="true"
+        @dragstart="onDragStart($event, 'custom', 'question')"
+      >
+        <div class="preview-node">
+          <div class="preview-number">Q</div>
+          <div class="preview-content">
+            <span>Pregunta</span>
+          </div>
+        </div>
+      </div>
+
+      <div
+        class="draggable-node"
+        draggable="true"
         @dragstart="onDragStart($event, 'custom', 'statement')"
       >
         <div class="preview-node">
           <div class="preview-number">S</div>
           <div class="preview-content">
-            <span>Simple</span>
+            <span>Declaración</span>
           </div>
         </div>
       </div>

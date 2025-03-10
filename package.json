@@ -1,6 +1,6 @@
 {
   "name": "flow-chart-builder",
-  "version": "1.0.2",
+  "version": "1.0.1",
   "scripts": {
     "build": "weweb build",
     "serve": "weweb serve"
