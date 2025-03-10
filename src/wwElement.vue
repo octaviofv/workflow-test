@@ -11,7 +11,11 @@
         :nodes-draggable="!isEditing"
         :nodes-connectable="!isEditing"
         :elements-selectable="!isEditing"
+        :default-viewport="{ x: 0, y: 0, zoom: 1 }"
+        :auto-connect="{ type: 'smoothstep' }"
         class="flowchart"
+        :default-edge-options="defaultEdgeOptions"
+        direction="LR"
         @nodeClick="onNodeClick"
         @connect="onConnect"
         @paneClick="onPaneClick"
@@ -103,6 +107,12 @@ export default {
       return false;
     });
 
+    const defaultEdgeOptions = {
+      type: 'smoothstep',
+      animated: true,
+      style: { strokeWidth: 2 },
+    };
+
     const { 
       findNode, 
       addNodes, 
@@ -111,10 +121,7 @@ export default {
       project,
       fitView 
     } = useVueFlow({
-      defaultEdgeOptions: {
-        type: 'smoothstep',
-        animated: true,
-      },
+      defaultEdgeOptions,
     });
 
     const containerStyle = computed(() => ({
@@ -134,7 +141,7 @@ export default {
         {
           id: 'process-1',
           type: 'custom',
-          position: { x: 200, y: 150 },
+          position: { x: 100, y: 150 },
           data: {
             label: 'Proceso Principal',
             content: 'Descripción del proceso principal',
@@ -144,7 +151,7 @@ export default {
         {
           id: 'condition-1',
           type: 'conditional',
-          position: { x: 200, y: 300 },
+          position: { x: 300, y: 150 },
           data: {
             condition: 'value > 10',
             label: 'Condición'
@@ -311,6 +318,7 @@ export default {
       backgroundGap,
       showMinimap,
       backgroundColor,
+      defaultEdgeOptions,
       onNodeClick,
       onConnect,
       onPaneClick,
@@ -396,3 +404,4 @@ export default {
   }
 }
 </style>
+```
