@@ -124,7 +124,6 @@ export default {
       fitView,
       getNodes,
       getEdges,
-      setNodes 
     } = useVueFlow({
       defaultEdgeOptions,
     });
@@ -185,15 +184,17 @@ export default {
         nodesPerLevel.get(level).push(nodeId);
       });
 
-      // Position nodes
-      const layoutedNodes = nodes.map(node => {
-        const level = nodeLevels.get(node.id) || 0;
+      // Update node positions in the elements array
+      const updatedElements = elements.value.map(el => {
+        if (el.source) return el; // Skip edges
+
+        const level = nodeLevels.get(el.id) || 0;
         const nodesInLevel = nodesPerLevel.get(level);
-        const indexInLevel = nodesInLevel.indexOf(node.id);
+        const indexInLevel = nodesInLevel.indexOf(el.id);
         const totalInLevel = nodesInLevel.length;
         
         return {
-          ...node,
+          ...el,
           position: {
             x: level * HORIZONTAL_SPACING + 50,
             y: (indexInLevel - (totalInLevel - 1) / 2) * VERTICAL_SPACING + 300
@@ -201,7 +202,10 @@ export default {
         };
       });
 
-      setNodes(layoutedNodes);
+      // Update elements and trigger content update
+      elements.value = updatedElements;
+      updateFlowData();
+
       setTimeout(() => {
         fitView({ padding: 0.2 });
       }, 100);
