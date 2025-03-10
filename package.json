@@ -1,6 +1,7 @@
 {
   "name": "flow-chart-builder",
   "version": "1.0.1",
+  "packageVersion": "1.0.0",
   "scripts": {
     "build": "weweb build",
     "serve": "weweb serve"
@@ -13,7 +14,7 @@
     "axios": "^1.6.2",
     "xml2js": "^0.6.2",
     "lodash": "^4.17.21",
-    "vue-json-pretty": "^2.2.4",
+    "vue-json-pretty": "^2.2.4"
   },
   "devDependencies": {}
 }
