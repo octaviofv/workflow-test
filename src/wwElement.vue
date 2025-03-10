@@ -117,10 +117,107 @@ export default {
     const showMinimap = computed(() => props.content?.showMinimap ?? true);
     const backgroundColor = computed(() => props.content?.backgroundColor || '#f5f5f5');
 
+    // Initialize with default flow data if none exists
+    const defaultFlowData = {
+      nodes: [
+        {
+          id: 'start-1',
+          type: 'circle',
+          position: { x: 250, y: 50 },
+          data: { type: 'start' }
+        },
+        {
+          id: 'process-1',
+          type: 'custom',
+          position: { x: 200, y: 150 },
+          data: {
+            label: 'Proceso Principal',
+            content: 'Descripción del proceso principal',
+            number: '1'
+          }
+        },
+        {
+          id: 'start-subprocess',
+          type: 'circle',
+          position: { x: 50, y: 250 },
+          data: { type: 'start' }
+        },
+        {
+          id: 'subprocess',
+          type: 'custom',
+          position: { x: 50, y: 350 },
+          data: {
+            label: 'Subproceso',
+            content: 'Descripción del subproceso',
+            number: '2'
+          }
+        },
+        {
+          id: 'end-subprocess',
+          type: 'circle',
+          position: { x: 50, y: 450 },
+          data: { type: 'end' }
+        },
+        {
+          id: 'process-2',
+          type: 'custom',
+          position: { x: 200, y: 250 },
+          data: {
+            label: 'Proceso Secundario',
+            content: 'Descripción del proceso secundario',
+            number: '3'
+          }
+        },
+        {
+          id: 'end-1',
+          type: 'circle',
+          position: { x: 250, y: 450 },
+          data: { type: 'end' }
+        }
+      ],
+      edges: [
+        {
+          id: 'edge-start-1',
+          source: 'start-1',
+          target: 'process-1',
+          type: 'smoothstep',
+          animated: true
+        },
+        {
+          id: 'edge-process-1',
+          source: 'process-1',
+          target: 'process-2',
+          type: 'smoothstep',
+          animated: true
+        },
+        {
+          id: 'edge-start-subprocess',
+          source: 'start-subprocess',
+          target: 'subprocess',
+          type: 'smoothstep',
+          animated: true
+        },
+        {
+          id: 'edge-subprocess',
+          source: 'subprocess',
+          target: 'end-subprocess',
+          type: 'smoothstep',
+          animated: true
+        },
+        {
+          id: 'edge-process-2',
+          source: 'process-2',
+          target: 'end-1',
+          type: 'smoothstep',
+          animated: true
+        }
+      ]
+    };
+
     // Update flowData in content whenever elements change
     const updateFlowData = () => {
-      const nodes = elements.value.filter(el => !el.source); // Elements without source are nodes
-      const edges = elements.value.filter(el => el.source); // Elements with source are edges
+      const nodes = elements.value.filter(el => !el.source);
+      const edges = elements.value.filter(el => el.source);
 
       const flowData = {
         nodes,
@@ -129,13 +226,12 @@ export default {
 
       const updatedContent = {
         ...props.content,
-        flowData: JSON.stringify(flowData, null, 2) // Format the JSON with indentation
+        flowData: JSON.stringify(flowData, null, 2)
       };
 
       emit('update:content', updatedContent);
     };
 
-    // Watch for changes in elements and update flowData
     watch(elements, () => {
       updateFlowData();
     }, { deep: true });
@@ -150,6 +246,12 @@ export default {
           elements.value = [
             ...(parsedData.nodes || []),
             ...(parsedData.edges || [])
+          ];
+        } else {
+          // Use default flow data if none exists
+          elements.value = [
+            ...defaultFlowData.nodes,
+            ...defaultFlowData.edges
           ];
         }
         initialized.value = true;
