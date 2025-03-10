@@ -324,7 +324,6 @@ import { ref, computed } from 'vue';
 import { Handle } from '@vue-flow/core';
 import axios from 'axios';
 import { debounce } from 'lodash';
-import qs from 'qs';
 
 export default {
   name: 'HttpRequestNode',
@@ -459,12 +458,13 @@ export default {
 
       // Add query parameters
       if (props.data.queryParams?.length) {
-        config.params = {};
+        const params = new URLSearchParams();
         props.data.queryParams.forEach(param => {
           if (param.key) {
-            config.params[param.key] = param.value;
+            params.append(param.key, param.value || '');
           }
         });
+        config.params = params;
       }
 
       // Add authentication
@@ -479,8 +479,9 @@ export default {
         if (props.data.auth.in === 'header') {
           config.headers[props.data.auth.key] = props.data.auth.value;
         } else {
-          config.params = config.params || {};
-          config.params[props.data.auth.key] = props.data.auth.value;
+          const params = new URLSearchParams(config.params || {});
+          params.append(props.data.auth.key, props.data.auth.value);
+          config.params = params;
         }
       }
 
@@ -494,13 +495,13 @@ export default {
             throw new Error('Invalid JSON body');
           }
         } else if (props.data.bodyType === 'form') {
-          const formData = {};
+          const formData = new URLSearchParams();
           props.data.formData.forEach(field => {
             if (field.key) {
-              formData[field.key] = field.value;
+              formData.append(field.key, field.value || '');
             }
           });
-          config.data = qs.stringify(formData);
+          config.data = formData.toString();
           config.headers['Content-Type'] = 'application/x-www-form-urlencoded';
         } else {
           config.data = props.data.body;
@@ -927,7 +928,7 @@ export default {
   align-items: center;
   justify-content: center;
   gap: 8px;
-  padding : 24px;
+  padding: 24px;
   color: #6B7280;
   background: #F9FAFB;
   border-radius: 6px;
@@ -970,10 +971,4 @@ export default {
       border-color: #059669;
     }
 
-    &.vue-flow__handle-invalid {
-      background: #EF4444;
-      border-color: #DC2626;
-    }
-  }
-}
-</style>
+    &.vue-flow__handle-
