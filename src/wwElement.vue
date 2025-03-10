@@ -24,11 +24,8 @@
         <template #node-custom="nodeProps">
           <CustomNode v-bind="nodeProps" @update:data="onNodeDataUpdate" />
         </template>
-        <template #node-circle="nodeProps">
-          <CircleNode v-bind="nodeProps" />
-        </template>
-        <template #node-http-request="nodeProps">
-          <HttpRequestNode v-bind="nodeProps" @update:data="onNodeDataUpdate" />
+        <template #node-comment="nodeProps">
+          <CommentNode v-bind="nodeProps" @update:data="onNodeDataUpdate" />
         </template>
 
         <Background :pattern-color="backgroundColor" :gap="backgroundGap" />
@@ -55,8 +52,7 @@ import '@vue-flow/core/dist/theme-default.css';
 import '@vue-flow/controls/dist/style.css';
 import '@vue-flow/minimap/dist/style.css';
 import CustomNode from './components/CustomNode.vue';
-import CircleNode from './components/CircleNode.vue';
-import HttpRequestNode from './components/HttpRequestNode.vue';
+import CommentNode from './components/CommentNode.vue';
 import Sidebar from './components/Sidebar.vue';
 
 export default {
@@ -68,8 +64,7 @@ export default {
     MiniMap,
     Panel,
     CustomNode,
-    CircleNode,
-    HttpRequestNode,
+    CommentNode,
     Sidebar,
   },
   props: {
@@ -121,12 +116,6 @@ export default {
     const defaultFlowData = {
       nodes: [
         {
-          id: 'start-1',
-          type: 'circle',
-          position: { x: 250, y: 50 },
-          data: { type: 'start' }
-        },
-        {
           id: 'process-1',
           type: 'custom',
           position: { x: 200, y: 150 },
@@ -137,84 +126,27 @@ export default {
           }
         },
         {
-          id: 'start-subprocess',
-          type: 'circle',
-          position: { x: 50, y: 250 },
-          data: { type: 'start' }
-        },
-        {
-          id: 'subprocess',
-          type: 'custom',
-          position: { x: 50, y: 350 },
+          id: 'comment-1',
+          type: 'comment',
+          position: { x: 200, y: 300 },
           data: {
-            label: 'Subproceso',
-            content: 'Descripción del subproceso',
-            number: '2'
+            label: 'Comentario Inicial',
+            content: 'Agregar observaciones aquí...',
+            timestamp: new Date().toISOString()
           }
-        },
-        {
-          id: 'end-subprocess',
-          type: 'circle',
-          position: { x: 50, y: 450 },
-          data: { type: 'end' }
-        },
-        {
-          id: 'process-2',
-          type: 'custom',
-          position: { x: 200, y: 250 },
-          data: {
-            label: 'Proceso Secundario',
-            content: 'Descripción del proceso secundario',
-            number: '3'
-          }
-        },
-        {
-          id: 'end-1',
-          type: 'circle',
-          position: { x: 250, y: 450 },
-          data: { type: 'end' }
         }
       ],
       edges: [
         {
-          id: 'edge-start-1',
-          source: 'start-1',
-          target: 'process-1',
-          type: 'smoothstep',
-          animated: true
-        },
-        {
-          id: 'edge-process-1',
+          id: 'edge-1',
           source: 'process-1',
-          target: 'process-2',
-          type: 'smoothstep',
-          animated: true
-        },
-        {
-          id: 'edge-start-subprocess',
-          source: 'start-subprocess',
-          target: 'subprocess',
-          type: 'smoothstep',
-          animated: true
-        },
-        {
-          id: 'edge-subprocess',
-          source: 'subprocess',
-          target: 'end-subprocess',
-          type: 'smoothstep',
-          animated: true
-        },
-        {
-          id: 'edge-process-2',
-          source: 'process-2',
-          target: 'end-1',
+          target: 'comment-1',
           type: 'smoothstep',
           animated: true
         }
       ]
     };
 
-    // Update flowData in content whenever elements change
     const updateFlowData = () => {
       const nodes = elements.value.filter(el => !el.source);
       const edges = elements.value.filter(el => el.source);
@@ -243,12 +175,23 @@ export default {
             ? JSON.parse(props.content.flowData) 
             : props.content.flowData;
           
+          // Filter out start and end nodes from existing data
+          const filteredNodes = parsedData.nodes.filter(node => 
+            !(node.type === 'circle' && (node.data.type === 'start' || node.data.type === 'end'))
+          );
+          
+          // Filter out edges connected to start or end nodes
+          const filteredEdges = parsedData.edges.filter(edge => {
+            const sourceNode = filteredNodes.find(n => n.id === edge.source);
+            const targetNode = filteredNodes.find(n => n.id === edge.target);
+            return sourceNode && targetNode;
+          });
+
           elements.value = [
-            ...(parsedData.nodes || []),
-            ...(parsedData.edges || [])
+            ...filteredNodes,
+            ...filteredEdges
           ];
         } else {
-          // Use default flow data if none exists
           elements.value = [
             ...defaultFlowData.nodes,
             ...defaultFlowData.edges
