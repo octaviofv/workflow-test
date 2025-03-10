@@ -40,11 +40,6 @@
         <Background :pattern-color="backgroundColor" :gap="backgroundGap" />
         <Controls />
         <MiniMap v-if="showMinimap" />
-        <Panel position="top-right" class="controls">
-          <button @click="reorganizeFlow" class="control-button">
-            <span>Organizar Diagrama</span>
-          </button>
-        </Panel>
       </VueFlow>
       <Sidebar class="flowchart-sidebar" />
     </div>
@@ -122,8 +117,6 @@ export default {
       removeNodes, 
       project,
       fitView,
-      getNodes,
-      getEdges,
     } = useVueFlow({
       defaultEdgeOptions,
     });
@@ -139,77 +132,6 @@ export default {
     const backgroundGap = computed(() => props.content?.backgroundGap || 20);
     const showMinimap = computed(() => props.content?.showMinimap ?? true);
     const backgroundColor = computed(() => props.content?.backgroundColor || '#f5f5f5');
-
-    const reorganizeFlow = () => {
-      const nodes = getNodes();
-      const edges = getEdges();
-      
-      // Calculate levels for each node
-      const nodeLevels = new Map();
-      const visited = new Set();
-      
-      // Find root nodes (nodes with no incoming edges)
-      const rootNodes = nodes.filter(node => 
-        !edges.some(edge => edge.target === node.id)
-      );
-
-      // Assign levels through BFS
-      const queue = rootNodes.map(node => ({ node, level: 0 }));
-      while (queue.length > 0) {
-        const { node, level } = queue.shift();
-        if (visited.has(node.id)) continue;
-        
-        visited.add(node.id);
-        nodeLevels.set(node.id, level);
-        
-        // Add children to queue
-        const childEdges = edges.filter(edge => edge.source === node.id);
-        childEdges.forEach(edge => {
-          const childNode = nodes.find(n => n.id === edge.target);
-          if (childNode) {
-            queue.push({ node: childNode, level: level + 1 });
-          }
-        });
-      }
-
-      // Calculate node positions based on levels
-      const HORIZONTAL_SPACING = 250;
-      const VERTICAL_SPACING = 150;
-      
-      const nodesPerLevel = new Map();
-      nodeLevels.forEach((level, nodeId) => {
-        if (!nodesPerLevel.has(level)) {
-          nodesPerLevel.set(level, []);
-        }
-        nodesPerLevel.get(level).push(nodeId);
-      });
-
-      // Update node positions in the elements array
-      const updatedElements = elements.value.map(el => {
-        if (el.source) return el; // Skip edges
-
-        const level = nodeLevels.get(el.id) || 0;
-        const nodesInLevel = nodesPerLevel.get(level);
-        const indexInLevel = nodesInLevel.indexOf(el.id);
-        const totalInLevel = nodesInLevel.length;
-        
-        return {
-          ...el,
-          position: {
-            x: level * HORIZONTAL_SPACING + 50,
-            y: (indexInLevel - (totalInLevel - 1) / 2) * VERTICAL_SPACING + 300
-          }
-        };
-      });
-
-      // Update elements and trigger content update
-      elements.value = updatedElements;
-      updateFlowData();
-
-      setTimeout(() => {
-        fitView({ padding: 0.2 });
-      }, 100);
-    };
 
     const defaultFlowData = {
       nodes: [
@@ -285,7 +207,7 @@ export default {
         initialized.value = true;
         
         setTimeout(() => {
-          reorganizeFlow();
+          fitView({ padding: 0.2 });
         }, 100);
       } catch (error) {
         console.error('Error initializing flow data:', error);
@@ -405,7 +327,6 @@ export default {
       onNodesDelete,
       onEdgesDelete,
       onNodeDataUpdate,
-      reorganizeFlow,
     };
   },
 };
@@ -455,27 +376,5 @@ export default {
   flex-shrink: 0;
   height: 100%;
   border-left: 1px solid #ddd;
-}
-
-.controls {
-  padding: 8px;
-  background: white;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-.control-button {
-  padding: 6px 12px;
-  background: #3B82F6;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  font-size: 14px;
-  cursor: pointer;
-  transition: background-color 0.2s;
-
-  &:hover {
-    background: #2563EB;
-  }
 }
 </style>
