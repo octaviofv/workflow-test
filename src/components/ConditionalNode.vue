@@ -4,18 +4,22 @@
     :class="{ selected }"
     @dblclick="startEditing"
   >
-    <div class="node-content">
-      <div class="condition-header">
-        <div class="condition-icon">
-          <svg viewBox="0 0 24 24" width="16" height="16">
-            <path d="M19 5L12 12L19 19M5 19L12 12L5 5" fill="none" stroke="currentColor" stroke-width="2"/>
-          </svg>
-        </div>
-        <span class="condition-label">Condition</span>
+    <div class="node-header">
+      <div class="node-icon">
+        <svg viewBox="0 0 24 24" width="16" height="16">
+          <path d="M19 5L12 12L19 19M5 19L12 12L5 5" fill="none" stroke="currentColor" stroke-width="2"/>
+        </svg>
       </div>
+      <div class="node-title">{{ data.label || 'Condition' }}</div>
+      <div class="node-type">Decision</div>
+    </div>
 
-      <div v-if="!isEditing" class="condition-expression" @click="startEditing">
-        {{ data.condition || 'Double click to edit condition...' }}
+    <div class="node-content">
+      <div v-if="!isEditing" class="condition-display" @click="startEditing">
+        <div class="condition-label">IF</div>
+        <div class="condition-expression">
+          {{ data.condition || 'Double click to edit condition...' }}
+        </div>
       </div>
       <div v-else class="condition-editor">
         <textarea
@@ -32,14 +36,21 @@
         </div>
       </div>
 
-      <div class="path-indicators">
-        <div class="path-indicator true-path">
-          <span class="path-label">True</span>
-          <div class="path-arrow">→</div>
+      <div class="paths-container">
+        <div class="path true-path">
+          <div class="path-header">
+            <div class="path-icon">✓</div>
+            <div class="path-label">TRUE</div>
+          </div>
+          <div class="path-description">Execute if condition is true</div>
         </div>
-        <div class="path-indicator false-path">
-          <span class="path-label">False</span>
-          <div class="path-arrow">→</div>
+        <div class="path-divider"></div>
+        <div class="path false-path">
+          <div class="path-header">
+            <div class="path-icon">✕</div>
+            <div class="path-label">FALSE</div>
+          </div>
+          <div class="path-description">Execute if condition is false</div>
         </div>
       </div>
     </div>
@@ -175,81 +186,101 @@ export default {
 
 <style lang="scss" scoped>
 .conditional-node {
+  min-width: 280px;
   background: white;
-  border: 2px solid #3B82F6;
-  width: 280px;
-  transform: rotate(45deg);
-  position: relative;
+  border-radius: 12px;
+  border: 1px solid #E5E7EB;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  overflow: hidden;
   transition: all 0.2s ease;
 
-  &::before {
-    content: '';
-    display: block;
-    padding-bottom: 100%;
-  }
-
   &.selected {
-    border-color: #2563EB;
-    box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2);
-  }
-
-  .node-content {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    transform: rotate(-45deg);
-    display: flex;
-    flex-direction: column;
-    padding: 16px;
-    gap: 12px;
+    border-color: #3B82F6;
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
   }
 }
 
-.condition-header {
+.node-header {
   display: flex;
   align-items: center;
-  gap: 8px;
-  color: #3B82F6;
+  padding: 12px 16px;
+  background: #F3F4F6;
+  border-bottom: 1px solid #E5E7EB;
+  gap: 12px;
 }
 
-.condition-icon {
+.node-icon {
+  width: 32px;
+  height: 32px;
   display: flex;
   align-items: center;
   justify-content: center;
+  background: #3B82F6;
+  border-radius: 8px;
+  color: white;
+}
+
+.node-title {
+  font-weight: 500;
+  color: #111827;
+  font-size: 14px;
+  flex-grow: 1;
+}
+
+.node-type {
+  font-size: 12px;
+  color: #6B7280;
+  padding: 4px 8px;
+  background: #F9FAFB;
+  border-radius: 4px;
+  border: 1px solid #E5E7EB;
+}
+
+.node-content {
+  padding: 16px;
+}
+
+.condition-display {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 12px;
+  background: #F9FAFB;
+  border-radius: 8px;
+  cursor: text;
+  margin-bottom: 16px;
 }
 
 .condition-label {
   font-weight: 600;
-  font-size: 14px;
+  color: #3B82F6;
+  font-size: 12px;
+  padding: 2px 6px;
+  background: #EFF6FF;
+  border-radius: 4px;
 }
 
 .condition-expression {
+  flex-grow: 1;
   font-size: 13px;
   color: #374151;
-  padding: 8px;
-  background: #F3F4F6;
-  border-radius: 4px;
-  cursor: text;
-  min-height: 40px;
-  word-break: break-word;
+  line-height: 1.5;
 }
 
 .condition-editor {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
+  margin-bottom: 16px;
 }
 
 .condition-input {
   width: 100%;
-  padding: 8px;
+  padding: 12px;
   border: 1px solid #D1D5DB;
-  border-radius: 4px;
+  border-radius: 8px;
   font-size: 13px;
   resize: vertical;
   min-height: 60px;
+  margin-bottom: 8px;
+  background: #F9FAFB;
 
   &:focus {
     outline: none;
@@ -264,9 +295,9 @@ export default {
   justify-content: flex-end;
 
   button {
-    padding: 4px 8px;
-    border-radius: 4px;
-    font-size: 12px;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 13px;
     font-weight: 500;
     cursor: pointer;
     transition: all 0.2s ease;
@@ -293,35 +324,70 @@ export default {
   }
 }
 
-.path-indicators {
+.paths-container {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  margin-top: auto;
+  gap: 12px;
+  background: #F9FAFB;
+  border-radius: 8px;
+  overflow: hidden;
 }
 
-.path-indicator {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 12px;
-  color: #4B5563;
+.path {
+  padding: 12px;
 
   &.true-path {
-    color: #059669;
+    background: #ECFDF5;
+    border-bottom: 1px solid #D1FAE5;
+
+    .path-icon {
+      background: #059669;
+    }
+
+    .path-header {
+      color: #059669;
+    }
   }
 
   &.false-path {
-    color: #DC2626;
-  }
+    background: #FEF2F2;
 
-  .path-label {
-    font-weight: 500;
-  }
+    .path-icon {
+      background: #DC2626;
+    }
 
-  .path-arrow {
-    font-size: 14px;
+    .path-header {
+      color: #DC2626;
+    }
   }
+}
+
+.path-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.path-icon {
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  color: white;
+  font-size: 12px;
+}
+
+.path-label {
+  font-weight: 600;
+  font-size: 12px;
+}
+
+.path-description {
+  font-size: 12px;
+  color: #6B7280;
 }
 
 .node-handles {
@@ -364,15 +430,16 @@ export default {
 
 .error-message {
   position: absolute;
-  bottom: -30px;
+  bottom: -36px;
   left: 50%;
-  transform: translateX(-50%) rotate(-45deg);
+  transform: translateX(-50%);
   background: #FEE2E2;
   color: #DC2626;
-  padding: 4px 8px;
-  border-radius: 4px;
+  padding: 6px 12px;
+  border-radius: 6px;
   font-size: 12px;
   white-space: nowrap;
   z-index: 10;
+  border: 1px solid #FCA5A5;
 }
 </style>
