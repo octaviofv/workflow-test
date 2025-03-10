@@ -16,6 +16,8 @@
         class="flowchart"
         :default-edge-options="defaultEdgeOptions"
         direction="LR"
+        :snap-to-grid="true"
+        :snap-grid="[20, 20]"
         @nodeClick="onNodeClick"
         @connect="onConnect"
         @paneClick="onPaneClick"
@@ -39,8 +41,8 @@
         <Controls />
         <MiniMap v-if="showMinimap" />
         <Panel position="top-right" class="controls">
-          <button @click="fitView" class="control-button">
-            <span>Ajustar Vista</span>
+          <button @click="reorganizeFlow" class="control-button">
+            <span>Organizar Diagrama</span>
           </button>
         </Panel>
       </VueFlow>
@@ -119,7 +121,10 @@ export default {
       addEdges, 
       removeNodes, 
       project,
-      fitView 
+      fitView,
+      getNodes,
+      getEdges,
+      setNodes 
     } = useVueFlow({
       defaultEdgeOptions,
     });
@@ -135,6 +140,72 @@ export default {
     const backgroundGap = computed(() => props.content?.backgroundGap || 20);
     const showMinimap = computed(() => props.content?.showMinimap ?? true);
     const backgroundColor = computed(() => props.content?.backgroundColor || '#f5f5f5');
+
+    const reorganizeFlow = () => {
+      const nodes = getNodes();
+      const edges = getEdges();
+      
+      // Calculate levels for each node
+      const nodeLevels = new Map();
+      const visited = new Set();
+      
+      // Find root nodes (nodes with no incoming edges)
+      const rootNodes = nodes.filter(node => 
+        !edges.some(edge => edge.target === node.id)
+      );
+
+      // Assign levels through BFS
+      const queue = rootNodes.map(node => ({ node, level: 0 }));
+      while (queue.length > 0) {
+        const { node, level } = queue.shift();
+        if (visited.has(node.id)) continue;
+        
+        visited.add(node.id);
+        nodeLevels.set(node.id, level);
+        
+        // Add children to queue
+        const childEdges = edges.filter(edge => edge.source === node.id);
+        childEdges.forEach(edge => {
+          const childNode = nodes.find(n => n.id === edge.target);
+          if (childNode) {
+            queue.push({ node: childNode, level: level + 1 });
+          }
+        });
+      }
+
+      // Calculate node positions based on levels
+      const HORIZONTAL_SPACING = 250;
+      const VERTICAL_SPACING = 150;
+      
+      const nodesPerLevel = new Map();
+      nodeLevels.forEach((level, nodeId) => {
+        if (!nodesPerLevel.has(level)) {
+          nodesPerLevel.set(level, []);
+        }
+        nodesPerLevel.get(level).push(nodeId);
+      });
+
+      // Position nodes
+      const layoutedNodes = nodes.map(node => {
+        const level = nodeLevels.get(node.id) || 0;
+        const nodesInLevel = nodesPerLevel.get(level);
+        const indexInLevel = nodesInLevel.indexOf(node.id);
+        const totalInLevel = nodesInLevel.length;
+        
+        return {
+          ...node,
+          position: {
+            x: level * HORIZONTAL_SPACING + 50,
+            y: (indexInLevel - (totalInLevel - 1) / 2) * VERTICAL_SPACING + 300
+          }
+        };
+      });
+
+      setNodes(layoutedNodes);
+      setTimeout(() => {
+        fitView({ padding: 0.2 });
+      }, 100);
+    };
 
     const defaultFlowData = {
       nodes: [
@@ -210,7 +281,7 @@ export default {
         initialized.value = true;
         
         setTimeout(() => {
-          fitView({ padding: 0.2 });
+          reorganizeFlow();
         }, 100);
       } catch (error) {
         console.error('Error initializing flow data:', error);
@@ -330,7 +401,7 @@ export default {
       onNodesDelete,
       onEdgesDelete,
       onNodeDataUpdate,
-      fitView,
+      reorganizeFlow,
     };
   },
 };
@@ -404,4 +475,3 @@ export default {
   }
 }
 </style>
-```
