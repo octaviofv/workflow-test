@@ -5,23 +5,6 @@
       <div
         class="draggable-node"
         draggable="true"
-        @dragstart="onDragStart($event, 'circle', 'start')"
-      >
-        <div class="preview-node start-node">
-          <div class="preview-number">
-            <svg viewBox="0 0 24 24" style="width: 16px; height: 16px; fill: white;">
-              <path d="M8 5v14l11-7z" />
-            </svg>
-          </div>
-          <div class="preview-content">
-            <span>Inicio</span>
-          </div>
-        </div>
-      </div>
-
-      <div
-        class="draggable-node"
-        draggable="true"
         @dragstart="onDragStart($event, 'custom', 'process')"
       >
         <div class="preview-node">
@@ -35,16 +18,16 @@
       <div
         class="draggable-node"
         draggable="true"
-        @dragstart="onDragStart($event, 'circle', 'end')"
+        @dragstart="onDragStart($event, 'comment', 'comment')"
       >
-        <div class="preview-node end-node">
+        <div class="preview-node comment-node">
           <div class="preview-number">
             <svg viewBox="0 0 24 24" style="width: 16px; height: 16px; fill: white;">
-              <path d="M6 6h12v12H6z" />
+              <path d="M20 2H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h14l4 4V4c0-1.1-.9-2-2-2z"/>
             </svg>
           </div>
           <div class="preview-content">
-            <span>Fin</span>
+            <span>Comentario</span>
           </div>
         </div>
       </div>
@@ -62,16 +45,18 @@ export default {
         data: {}
       };
 
-      if (nodeType === 'circle') {
-        nodeData.data = {
-          type: variant
-        };
-      } else if (nodeType === 'custom') {
+      if (nodeType === 'custom') {
         nodeData.data = {
           label: 'Nuevo Proceso',
           content: 'Descripción del proceso',
           number: 'P',
           backgroundColor: '#ffffff'
+        };
+      } else if (nodeType === 'comment') {
+        nodeData.data = {
+          label: 'Nuevo Comentario',
+          content: '',
+          timestamp: new Date().toISOString()
         };
       }
 
@@ -132,12 +117,8 @@ export default {
     background: #f8f9fa;
   }
 
-  &.start-node .preview-number {
-    background-color: #4CAF50;
-  }
-
-  &.end-node .preview-number {
-    background-color: #F44336;
+  &.comment-node .preview-number {
+    background-color: #6366F1;
   }
 }
 
