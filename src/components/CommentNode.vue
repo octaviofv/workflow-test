@@ -1,22 +1,45 @@
 <template>
-  <div class="comment-node" :class="{ selected }">
+  <div 
+    class="comment-node" 
+    :class="{ selected, editing: isEditing }"
+    @dblclick="startEditing"
+  >
     <div class="node-header">
       <div class="header-icon">
         <svg viewBox="0 0 24 24" width="20" height="20">
           <path d="M20 2H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h14l4 4V4c0-1.1-.9-2-2-2zm-2 12H6v-2h12v2zm0-3H6V9h12v2zm0-3H6V6h12v2z" fill="currentColor"/>
         </svg>
       </div>
-      <div class="node-title">{{ data.label || 'Comentario' }}</div>
+      <div class="node-title" v-if="!isEditing">{{ data.label || 'Comentario' }}</div>
+      <input
+        v-else
+        v-model="editedLabel"
+        class="edit-input"
+        @keyup.enter="saveChanges"
+        @keyup.esc="cancelEdit"
+        ref="labelInput"
+        placeholder="Título del comentario"
+      />
       <div class="timestamp">{{ formatDate(data.timestamp) }}</div>
     </div>
 
     <div class="node-content">
+      <div v-if="!isEditing" class="content-text" @dblclick="startEditing">
+        {{ data.content || 'Doble clic para editar...' }}
+      </div>
       <textarea
-        v-model="commentText"
-        placeholder="Agregar comentario..."
+        v-else
+        v-model="editedContent"
         class="comment-textarea"
-        @change="updateComment"
+        @keyup.esc="cancelEdit"
+        ref="contentTextarea"
+        placeholder="Escribe tu comentario aquí..."
       ></textarea>
+    </div>
+
+    <div v-if="isEditing" class="edit-actions">
+      <button class="save-button" @click="saveChanges">Guardar</button>
+      <button class="cancel-button" @click="cancelEdit">Cancelar</button>
     </div>
 
     <div class="node-handles">
@@ -35,7 +58,7 @@
 </template>
 
 <script>
-import { ref, onMounted } from 'vue';
+import { ref, watch } from 'vue';
 import { Handle } from '@vue-flow/core';
 
 export default {
@@ -59,11 +82,53 @@ export default {
   },
   emits: ['update:data'],
   setup(props, { emit }) {
-    const commentText = ref('');
+    const isEditing = ref(false);
+    const editedLabel = ref('');
+    const editedContent = ref('');
+    const labelInput = ref(null);
+    const contentTextarea = ref(null);
 
-    onMounted(() => {
-      commentText.value = props.data.content || '';
-    });
+    const startEditing = () => {
+      editedLabel.value = props.data.label || '';
+      editedContent.value = props.data.content || '';
+      isEditing.value = true;
+      
+      setTimeout(() => {
+        labelInput.value?.focus();
+      }, 0);
+    };
+
+    const validateInput = () => {
+      if (!editedLabel.value.trim()) {
+        return { isValid: false, message: 'El título no puede estar vacío' };
+      }
+      if (!editedContent.value.trim()) {
+        return { isValid: false, message: 'El comentario no puede estar vacío' };
+      }
+      return { isValid: true };
+    };
+
+    const saveChanges = () => {
+      const validation = validateInput();
+      if (!validation.isValid) {
+        alert(validation.message);
+        return;
+      }
+
+      const updatedData = {
+        ...props.data,
+        label: editedLabel.value.trim(),
+        content: editedContent.value.trim(),
+        timestamp: new Date().toISOString()
+      };
+      
+      emit('update:data', props.id, updatedData);
+      isEditing.value = false;
+    };
+
+    const cancelEdit = () => {
+      isEditing.value = false;
+    };
 
     const formatDate = (timestamp) => {
       if (!timestamp) return '';
@@ -71,19 +136,30 @@ export default {
       return date.toLocaleString();
     };
 
-    const updateComment = () => {
-      const updatedData = {
-        ...props.data,
-        content: commentText.value,
-        timestamp: new Date().toISOString()
-      };
-      emit('update:data', props.id, updatedData);
+    const handleClickOutside = (event) => {
+      if (isEditing.value && !event.target.closest('.comment-node')) {
+        saveChanges();
+      }
     };
 
+    watch(isEditing, (newValue) => {
+      if (newValue) {
+        document.addEventListener('click', handleClickOutside);
+      } else {
+        document.removeEventListener('click', handleClickOutside);
+      }
+    });
+
     return {
-      commentText,
-      formatDate,
-      updateComment
+      isEditing,
+      editedLabel,
+      editedContent,
+      labelInput,
+      contentTextarea,
+      startEditing,
+      saveChanges,
+      cancelEdit,
+      formatDate
     };
   }
 };
@@ -92,15 +168,21 @@ export default {
 <style lang="scss" scoped>
 .comment-node {
   min-width: 300px;
-  background: white;
+  background: #FFFBE6;
   border-radius: 8px;
-  border: 1px solid #E5E7EB;
+  border: 1px solid #FFE58F;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
   overflow: hidden;
+  transition: all 0.2s ease;
 
   &.selected {
     border-color: #3B82F6;
     box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+  }
+
+  &.editing {
+    border-color: #3B82F6;
+    box-shadow: 0 4px 6px rgba(59, 130, 246, 0.1);
   }
 }
 
@@ -108,25 +190,41 @@ export default {
   display: flex;
   align-items: center;
   padding: 12px;
-  background: #F3F4F6;
-  border-bottom: 1px solid #E5E7EB;
+  background: #FFF1B8;
+  border-bottom: 1px solid #FFE58F;
   gap: 8px;
 
   .header-icon {
-    color: #4B5563;
+    color: #D48806;
     display: flex;
     align-items: center;
   }
 
   .node-title {
     font-weight: 500;
-    color: #374151;
+    color: #262626;
     flex-grow: 1;
   }
 
   .timestamp {
     font-size: 12px;
-    color: #6B7280;
+    color: #595959;
+  }
+}
+
+.edit-input {
+  flex-grow: 1;
+  padding: 6px 8px;
+  border: 1px solid #D9D9D9;
+  border-radius: 4px;
+  font-size: 14px;
+  background: white;
+  margin-right: 8px;
+
+  &:focus {
+    outline: none;
+    border-color: #3B82F6;
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
   }
 }
 
@@ -134,16 +232,24 @@ export default {
   padding: 12px;
 }
 
+.content-text {
+  font-size: 14px;
+  line-height: 1.5;
+  color: #262626;
+  white-space: pre-wrap;
+  cursor: text;
+}
+
 .comment-textarea {
   width: 100%;
   min-height: 100px;
   padding: 8px;
-  border: 1px solid #E5E7EB;
+  border: 1px solid #D9D9D9;
   border-radius: 4px;
   resize: vertical;
   font-size: 14px;
   line-height: 1.5;
-  color: #374151;
+  background: white;
 
   &:focus {
     outline: none;
@@ -152,7 +258,44 @@ export default {
   }
 
   &::placeholder {
-    color: #9CA3AF;
+    color: #8C8C8C;
+  }
+}
+
+.edit-actions {
+  display: flex;
+  gap: 8px;
+  padding: 0 12px 12px;
+  justify-content: flex-end;
+
+  button {
+    padding: 6px 12px;
+    border-radius: 4px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+
+    &.save-button {
+      background: #3B82F6;
+      color: white;
+      border: none;
+
+      &:hover {
+        background: #2563EB;
+      }
+    }
+
+    &.cancel-button {
+      background: white;
+      color: #262626;
+      border: 1px solid #D9D9D9;
+
+      &:hover {
+        background: #F5F5F5;
+        border-color: #BFBFBF;
+      }
+    }
   }
 }
 
@@ -171,6 +314,7 @@ export default {
     border: 2px solid #3B82F6;
     border-radius: 50%;
     pointer-events: all;
+    transition: all 0.2s ease;
 
     &:hover {
       background: #DBEAFE;
