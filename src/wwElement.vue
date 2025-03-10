@@ -31,6 +31,11 @@
         <Background :pattern-color="backgroundColor" :gap="backgroundGap" />
         <Controls />
         <MiniMap v-if="showMinimap" />
+        <Panel position="top-right" class="controls">
+          <button @click="fitView" class="control-button">
+            <span>Ajustar Vista</span>
+          </button>
+        </Panel>
       </VueFlow>
       <Sidebar class="flowchart-sidebar" />
     </div>
@@ -93,7 +98,14 @@ export default {
       return false;
     });
 
-    const { findNode, addNodes, addEdges, removeNodes, project } = useVueFlow({
+    const { 
+      findNode, 
+      addNodes, 
+      addEdges, 
+      removeNodes, 
+      project,
+      fitView 
+    } = useVueFlow({
       defaultEdgeOptions: {
         type: 'smoothstep',
         animated: true,
@@ -112,7 +124,6 @@ export default {
     const showMinimap = computed(() => props.content?.showMinimap ?? true);
     const backgroundColor = computed(() => props.content?.backgroundColor || '#f5f5f5');
 
-    // Initialize with default flow data if none exists
     const defaultFlowData = {
       nodes: [
         {
@@ -175,12 +186,10 @@ export default {
             ? JSON.parse(props.content.flowData) 
             : props.content.flowData;
           
-          // Filter out start and end nodes from existing data
           const filteredNodes = parsedData.nodes.filter(node => 
             !(node.type === 'circle' && (node.data.type === 'start' || node.data.type === 'end'))
           );
           
-          // Filter out edges connected to start or end nodes
           const filteredEdges = parsedData.edges.filter(edge => {
             const sourceNode = filteredNodes.find(n => n.id === edge.source);
             const targetNode = filteredNodes.find(n => n.id === edge.target);
@@ -198,6 +207,11 @@ export default {
           ];
         }
         initialized.value = true;
+        
+        // Fit view after initialization
+        setTimeout(() => {
+          fitView({ padding: 0.2 });
+        }, 100);
       } catch (error) {
         console.error('Error initializing flow data:', error);
         elements.value = [];
@@ -315,6 +329,7 @@ export default {
       onNodesDelete,
       onEdgesDelete,
       onNodeDataUpdate,
+      fitView,
     };
   },
 };
@@ -364,5 +379,27 @@ export default {
   flex-shrink: 0;
   height: 100%;
   border-left: 1px solid #ddd;
+}
+
+.controls {
+  padding: 8px;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.control-button {
+  padding: 6px 12px;
+  background: #3B82F6;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+
+  &:hover {
+    background: #2563EB;
+  }
 }
 </style>
