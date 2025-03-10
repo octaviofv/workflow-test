@@ -27,6 +27,9 @@
         <template #node-comment="nodeProps">
           <CommentNode v-bind="nodeProps" @update:data="onNodeDataUpdate" />
         </template>
+        <template #node-conditional="nodeProps">
+          <ConditionalNode v-bind="nodeProps" @update:data="onNodeDataUpdate" />
+        </template>
 
         <Background :pattern-color="backgroundColor" :gap="backgroundGap" />
         <Controls />
@@ -58,6 +61,7 @@ import '@vue-flow/controls/dist/style.css';
 import '@vue-flow/minimap/dist/style.css';
 import CustomNode from './components/CustomNode.vue';
 import CommentNode from './components/CommentNode.vue';
+import ConditionalNode from './components/ConditionalNode.vue';
 import Sidebar from './components/Sidebar.vue';
 
 export default {
@@ -70,6 +74,7 @@ export default {
     Panel,
     CustomNode,
     CommentNode,
+    ConditionalNode,
     Sidebar,
   },
   props: {
@@ -137,13 +142,12 @@ export default {
           }
         },
         {
-          id: 'comment-1',
-          type: 'comment',
+          id: 'condition-1',
+          type: 'conditional',
           position: { x: 200, y: 300 },
           data: {
-            label: 'Comentario Inicial',
-            content: 'Agregar observaciones aquí...',
-            timestamp: new Date().toISOString()
+            condition: 'value > 10',
+            label: 'Condición'
           }
         }
       ],
@@ -151,7 +155,7 @@ export default {
         {
           id: 'edge-1',
           source: 'process-1',
-          target: 'comment-1',
+          target: 'condition-1',
           type: 'smoothstep',
           animated: true
         }
@@ -186,19 +190,9 @@ export default {
             ? JSON.parse(props.content.flowData) 
             : props.content.flowData;
           
-          const filteredNodes = parsedData.nodes.filter(node => 
-            !(node.type === 'circle' && (node.data.type === 'start' || node.data.type === 'end'))
-          );
-          
-          const filteredEdges = parsedData.edges.filter(edge => {
-            const sourceNode = filteredNodes.find(n => n.id === edge.source);
-            const targetNode = filteredNodes.find(n => n.id === edge.target);
-            return sourceNode && targetNode;
-          });
-
           elements.value = [
-            ...filteredNodes,
-            ...filteredEdges
+            ...parsedData.nodes,
+            ...parsedData.edges
           ];
         } else {
           elements.value = [
@@ -208,7 +202,6 @@ export default {
         }
         initialized.value = true;
         
-        // Fit view after initialization
         setTimeout(() => {
           fitView({ padding: 0.2 });
         }, 100);
