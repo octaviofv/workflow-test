@@ -31,6 +31,23 @@
           </div>
         </div>
       </div>
+
+      <div
+        class="draggable-node"
+        draggable="true"
+        @dragstart="onDragStart($event, 'conditional', 'condition')"
+      >
+        <div class="preview-node condition-node">
+          <div class="preview-number">
+            <svg viewBox="0 0 24 24" style="width: 16px; height: 16px; fill: white;">
+              <path d="M19 5L12 12L19 19M5 19L12 12L5 5"/>
+            </svg>
+          </div>
+          <div class="preview-content">
+            <span>Condición</span>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -57,6 +74,11 @@ export default {
           label: 'Nuevo Comentario',
           content: '',
           timestamp: new Date().toISOString()
+        };
+      } else if (nodeType === 'conditional') {
+        nodeData.data = {
+          condition: '',
+          label: 'Nueva Condición'
         };
       }
 
@@ -119,6 +141,10 @@ export default {
 
   &.comment-node .preview-number {
     background-color: #6366F1;
+  }
+
+  &.condition-node .preview-number {
+    background-color: #3B82F6;
   }
 }
 
