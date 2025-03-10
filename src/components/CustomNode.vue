@@ -93,18 +93,19 @@ export default {
       editedContent.value = props.data.content || '';
       isEditing.value = true;
       
-      // Focus the label input after the next DOM update
       setTimeout(() => {
         labelInput.value?.focus();
       }, 0);
     };
 
     const saveChanges = () => {
-      emit('update:data', {
+      const updatedData = {
         ...props.data,
         label: editedLabel.value,
         content: editedContent.value,
-      });
+      };
+      
+      emit('update:data', props.id, updatedData);
       isEditing.value = false;
     };
 
@@ -112,7 +113,6 @@ export default {
       isEditing.value = false;
     };
 
-    // Close edit mode when clicking outside
     const handleClickOutside = (event) => {
       if (isEditing.value && !event.target.closest('.custom-node')) {
         saveChanges();
